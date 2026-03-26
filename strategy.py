@@ -1,10 +1,12 @@
 """
-Exp32: Add Bollinger Band width as 6th signal for vol compression detection.
+Exp33: Inverse volatility position sizing.
 
-Changes from exp28 (ATR 5.5, score 9.382):
-1. Add BB width signal: bullish when BB width is below median (compression = pending breakout)
-2. Keep MIN_VOTES at 4 but out of 6 signals now
-3. BB compression acts as a quality filter for entries
+Changes from exp32 (score 21.403):
+1. vol_scale (was dead code at 1.0) now uses inverse vol weighting:
+   vol_scale = TARGET_VOL / realized_vol, clamped to [0.5, 1.5]
+2. High vol → smaller position (same dollar risk, less P&L variance)
+3. Low vol → larger position (more exposure in calm markets)
+4. Targets sharpe denominator: reduces return volatility
 """
 
 import numpy as np
@@ -217,7 +219,7 @@ class Strategy:
 
             in_cooldown = (self.bar_count - self.exit_bar.get(symbol, -999)) < COOLDOWN_BARS
 
-            vol_scale = 1.0
+            vol_scale = max(0.5, min(1.5, TARGET_VOL / realized_vol))
             weight = SYMBOL_WEIGHTS.get(symbol, 0.33)
             if high_corr and symbol == "SOL":
                 weight *= 0.5
