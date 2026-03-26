@@ -1,13 +1,12 @@
 """
-Exp33: Inverse volatility position sizing.
+Exp34: Widen vol_scale clamp from [0.85,1.15] to [0.80,1.20].
 
-Changes from exp32 (score 21.403):
-1. vol_scale (was dead code at 1.0) now uses inverse vol weighting:
-   vol_scale = TARGET_VOL / realized_vol, clamped to [0.85, 1.15]
-2. High vol → smaller position (same dollar risk, less P&L variance)
-3. Low vol → larger position (more exposure in calm markets)
-4. Targets sharpe denominator: reduces return volatility
-5. Clamp [0.85, 1.15] balances sharpe gain vs turnover penalty
+Changes from exp33 (score 21.478):
+1. vol_scale clamp widened: [0.85, 1.15] → [0.80, 1.20]
+2. More aggressive position scaling by volatility regime
+3. Low vol → even larger position (capture more in calm markets)
+4. High vol → even smaller position (reduce risk in volatile markets)
+5. Further reduces return variance → improves Sharpe denominator
 """
 
 import numpy as np
@@ -220,7 +219,7 @@ class Strategy:
 
             in_cooldown = (self.bar_count - self.exit_bar.get(symbol, -999)) < COOLDOWN_BARS
 
-            vol_scale = max(0.85, min(1.15, TARGET_VOL / realized_vol))
+            vol_scale = max(0.80, min(1.20, TARGET_VOL / realized_vol))
             weight = SYMBOL_WEIGHTS.get(symbol, 0.33)
             if high_corr and symbol == "SOL":
                 weight *= 0.5
