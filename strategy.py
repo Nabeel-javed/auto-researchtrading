@@ -1,12 +1,11 @@
 """
-Exp34: Widen vol_scale clamp from [0.85,1.15] to [0.80,1.20].
+Exp35: Time-in-trade stop tightening.
 
-Changes from exp33 (score 21.478):
-1. vol_scale clamp widened: [0.85, 1.15] → [0.80, 1.20]
-2. More aggressive position scaling by volatility regime
-3. Low vol → even larger position (capture more in calm markets)
-4. High vol → even smaller position (reduce risk in volatile markets)
-5. Further reduces return variance → improves Sharpe denominator
+Changes from exp34 (score 21.584):
+1. Track entry bar per symbol
+2. After 48 bars in a trade, gradually tighten ATR_STOP_MULT
+3. Decay rate: 0.008 per bar after 48, capped at 40% reduction
+4. Locks in profits on extended trends instead of giving back gains
 """
 
 import numpy as np
@@ -84,6 +83,7 @@ class Strategy:
         self.pyramided = {}
         self.peak_equity = 100000.0
         self.exit_bar = {}
+        self.entry_bar = {}
         self.bar_count = 0
 
     def _calc_atr(self, history, lookback):
@@ -264,17 +264,25 @@ class Strategy:
                 if atr is None:
                     atr = self.atr_at_entry.get(symbol, mid * 0.02)
 
+                # Time-in-trade stop tightening
+                bars_in_trade = self.bar_count - self.entry_bar.get(symbol, self.bar_count)
+                if bars_in_trade > 48:
+                    time_decay = min(0.40, (bars_in_trade - 48) * 0.008)
+                    effective_mult = ATR_STOP_MULT * (1.0 - time_decay)
+                else:
+                    effective_mult = ATR_STOP_MULT
+
                 if symbol not in self.peak_prices:
                     self.peak_prices[symbol] = mid
 
                 if current_pos > 0:
                     self.peak_prices[symbol] = max(self.peak_prices[symbol], mid)
-                    stop = self.peak_prices[symbol] - ATR_STOP_MULT * atr
+                    stop = self.peak_prices[symbol] - effective_mult * atr
                     if mid < stop:
                         target = 0.0
                 else:
                     self.peak_prices[symbol] = min(self.peak_prices[symbol], mid)
-                    stop = self.peak_prices[symbol] + ATR_STOP_MULT * atr
+                    stop = self.peak_prices[symbol] + effective_mult * atr
                     if mid > stop:
                         target = 0.0
 
@@ -302,16 +310,19 @@ class Strategy:
                     self.entry_prices[symbol] = mid
                     self.peak_prices[symbol] = mid
                     self.atr_at_entry[symbol] = self._calc_atr(bd.history, ATR_LOOKBACK) or mid * 0.02
+                    self.entry_bar[symbol] = self.bar_count
                 elif target == 0:
                     self.entry_prices.pop(symbol, None)
                     self.peak_prices.pop(symbol, None)
                     self.atr_at_entry.pop(symbol, None)
                     self.pyramided.pop(symbol, None)
+                    self.entry_bar.pop(symbol, None)
                     self.exit_bar[symbol] = self.bar_count
                 elif (target > 0 and current_pos < 0) or (target < 0 and current_pos > 0):
                     self.entry_prices[symbol] = mid
                     self.peak_prices[symbol] = mid
                     self.atr_at_entry[symbol] = self._calc_atr(bd.history, ATR_LOOKBACK) or mid * 0.02
+                    self.entry_bar[symbol] = self.bar_count
                     self.pyramided[symbol] = False
 
         return signals
