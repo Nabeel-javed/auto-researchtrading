@@ -4,3 +4,8 @@ __pycache__/
 *.pyc
 .cache/
 .venv/
+paper_trading/
+experiment_logs/
+loop_results.tsv
+strategy.py.backup
+cron.log

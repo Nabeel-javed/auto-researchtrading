@@ -1,11 +1,14 @@
 """
-Exp36: Momentum strength position sizing.
+Live-safe strategy variant. Re-enables risk controls that were disabled during
+backtest optimization. Trades the same signals but with defensive guardrails.
 
-Changes from exp35 (score 21.590):
-1. Use mom_strength (already computed) to scale position size
-2. Weak momentum (barely crosses threshold) → 0.85x position
-3. Strong momentum (2x threshold) → 1.15x position
-4. Allocates more capital to higher-conviction signals
+Changes from the optimized strategy:
+1. DD_REDUCE_THRESHOLD: 99.0 → 0.05 (reduce positions at 5% drawdown)
+2. HIGH_CORR_THRESHOLD: 99.0 → 0.85 (reduce SOL when BTC-ETH highly correlated)
+3. BASE_POSITION_PCT: 0.08 → 0.05 (smaller positions = lower risk)
+4. COOLDOWN_BARS: 2 → 3 (slightly more conservative re-entry)
+5. Max portfolio exposure hard cap added
+6. Daily loss limit circuit breaker added
 """
 
 import numpy as np
@@ -34,7 +37,7 @@ BB_PERIOD = 7
 
 FUNDING_LOOKBACK = 24
 FUNDING_BOOST = 0.0
-BASE_POSITION_PCT = 0.08
+BASE_POSITION_PCT = 0.05        # CHANGED: 0.08 → 0.05 (smaller positions)
 VOL_LOOKBACK = 36
 TARGET_VOL = 0.015
 ATR_LOOKBACK = 24
@@ -46,13 +49,18 @@ BTC_OPPOSE_THRESHOLD = -99.0
 PYRAMID_THRESHOLD = 0.015
 PYRAMID_SIZE = 0.0
 CORR_LOOKBACK = 72
-HIGH_CORR_THRESHOLD = 99.0
+HIGH_CORR_THRESHOLD = 0.85      # CHANGED: 99.0 → 0.85 (active correlation filter)
 
-DD_REDUCE_THRESHOLD = 99.0
+DD_REDUCE_THRESHOLD = 0.05      # CHANGED: 99.0 → 0.05 (reduce at 5% drawdown)
 DD_REDUCE_SCALE = 0.5
 
-COOLDOWN_BARS = 2
-MIN_VOTES = 4  # out of 6 now
+COOLDOWN_BARS = 3               # CHANGED: 2 → 3 (more conservative)
+MIN_VOTES = 4
+
+# NEW: Live safety parameters
+MAX_PORTFOLIO_EXPOSURE_PCT = 0.20  # Max 20% of equity exposed across all positions
+DAILY_LOSS_LIMIT_PCT = 0.02        # Stop trading if down 2% in a day
+
 
 def ema(values, span):
     alpha = 2.0 / (span + 1)
@@ -85,6 +93,10 @@ class Strategy:
         self.exit_bar = {}
         self.entry_bar = {}
         self.bar_count = 0
+        # Daily loss tracking
+        self.day_start_equity = 100000.0
+        self.last_day = -1
+        self.halted = False
 
     def _calc_atr(self, history, lookback):
         if len(history) < lookback + 1:
@@ -126,10 +138,8 @@ class Strategy:
         return macd_line[-1] - signal_line[-1]
 
     def _calc_bb_width_pctile(self, closes, period):
-        """Calculate current BB width percentile over lookback."""
         if len(closes) < period * 3:
             return 50.0
-        # Calculate rolling BB width
         widths = []
         for i in range(period * 2, len(closes)):
             window = closes[i-period:i]
@@ -140,7 +150,6 @@ class Strategy:
         if len(widths) < 2:
             return 50.0
         current_width = widths[-1]
-        # Percentile of current width
         pctile = 100 * np.sum(np.array(widths) <= current_width) / len(widths)
         return pctile
 
@@ -149,6 +158,32 @@ class Strategy:
         equity = portfolio.equity if portfolio.equity > 0 else portfolio.cash
         self.bar_count += 1
 
+        # --- DAILY LOSS CIRCUIT BREAKER ---
+        current_day = self.bar_count // 24
+        if current_day != self.last_day:
+            self.day_start_equity = equity
+            self.last_day = current_day
+            self.halted = False
+
+        if not self.halted and equity < self.day_start_equity * (1 - DAILY_LOSS_LIMIT_PCT):
+            self.halted = True
+            # Close all positions
+            for symbol in ACTIVE_SYMBOLS:
+                current_pos = portfolio.positions.get(symbol, 0.0)
+                if abs(current_pos) > 1.0:
+                    signals.append(Signal(symbol=symbol, target_position=0.0))
+                    self.entry_prices.pop(symbol, None)
+                    self.peak_prices.pop(symbol, None)
+                    self.atr_at_entry.pop(symbol, None)
+                    self.pyramided.pop(symbol, None)
+                    self.entry_bar.pop(symbol, None)
+                    self.exit_bar[symbol] = self.bar_count
+            return signals
+
+        if self.halted:
+            return []
+
+        # --- DRAWDOWN POSITION SCALING ---
         self.peak_equity = max(self.peak_equity, equity)
         current_dd = (self.peak_equity - equity) / self.peak_equity
         dd_scale = 1.0
@@ -161,6 +196,11 @@ class Strategy:
 
         btc_eth_corr = self._calc_correlation(bar_data)
         high_corr = btc_eth_corr > HIGH_CORR_THRESHOLD
+
+        # --- MAX EXPOSURE CHECK ---
+        total_exposure = sum(abs(v) for v in portfolio.positions.values())
+        max_exposure = equity * MAX_PORTFOLIO_EXPOSURE_PCT
+        exposure_headroom = max(0, max_exposure - total_exposure)
 
         for symbol in ACTIVE_SYMBOLS:
             if symbol not in bar_data:
@@ -179,8 +219,6 @@ class Strategy:
 
             ret_vshort = (closes[-1] - closes[-SHORT_WINDOW]) / closes[-SHORT_WINDOW]
             ret_short = (closes[-1] - closes[-MED_WINDOW]) / closes[-MED_WINDOW]
-            ret_med = (closes[-1] - closes[-MED2_WINDOW]) / closes[-MED2_WINDOW]
-            ret_long = (closes[-1] - closes[-LONG_WINDOW]) / closes[-LONG_WINDOW]
 
             mom_bull = ret_short > dyn_threshold
             mom_bear = ret_short < -dyn_threshold
@@ -200,9 +238,8 @@ class Strategy:
             macd_bull = macd_hist > 0
             macd_bear = macd_hist < 0
 
-            # BB width: low percentile = compression = pending breakout
             bb_pctile = self._calc_bb_width_pctile(closes, BB_PERIOD)
-            bb_compressed = bb_pctile < 90  # Below 40th percentile = compressed
+            bb_compressed = bb_pctile < 90
 
             bull_votes = sum([mom_bull, vshort_bull, ema_bull, rsi_bull, macd_bull, bb_compressed])
             bear_votes = sum([mom_bear, vshort_bear, ema_bear, rsi_bear, macd_bear, bb_compressed])
@@ -219,6 +256,7 @@ class Strategy:
 
             in_cooldown = (self.bar_count - self.exit_bar.get(symbol, -999)) < COOLDOWN_BARS
 
+            # Inverse vol sizing
             vol_scale = max(0.80, min(1.20, TARGET_VOL / realized_vol))
             weight = SYMBOL_WEIGHTS.get(symbol, 0.33)
             if high_corr and symbol == "SOL":
@@ -227,10 +265,14 @@ class Strategy:
             strength_scale = min(1.15, max(0.85, 0.7 + 0.15 * mom_strength))
             size = equity * BASE_POSITION_PCT * weight * vol_scale * strength_scale * dd_scale
 
+            # Cap size by exposure headroom
+            current_pos = portfolio.positions.get(symbol, 0.0)
+            if current_pos == 0 and size > exposure_headroom:
+                size = exposure_headroom
+
             funding_rates = bd.history["funding_rate"].values[-FUNDING_LOOKBACK:]
             avg_funding = np.mean(funding_rates) if len(funding_rates) >= FUNDING_LOOKBACK else 0.0
 
-            current_pos = portfolio.positions.get(symbol, 0.0)
             target = current_pos
 
             if current_pos == 0:
@@ -311,6 +353,8 @@ class Strategy:
                     self.peak_prices[symbol] = mid
                     self.atr_at_entry[symbol] = self._calc_atr(bd.history, ATR_LOOKBACK) or mid * 0.02
                     self.entry_bar[symbol] = self.bar_count
+                    # Update exposure headroom
+                    exposure_headroom -= abs(target)
                 elif target == 0:
                     self.entry_prices.pop(symbol, None)
                     self.peak_prices.pop(symbol, None)
