@@ -42,7 +42,7 @@ MAINNET_API = "https://api.hyperliquid.xyz"
 # Strategy config
 SYMBOLS = ["BTC", "ETH", "SOL"]
 LOOKBACK_BARS = 500
-INITIAL_CAPITAL = 31.0  # Your starting capital
+INITIAL_CAPITAL = 700.0  # Your starting capital
 
 # Coin mapping (Hyperliquid uses coin names without -PERP for API)
 HL_COINS = {"BTC": "BTC", "ETH": "ETH", "SOL": "SOL"}
