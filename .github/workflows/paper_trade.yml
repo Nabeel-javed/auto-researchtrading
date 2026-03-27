@@ -21,8 +21,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: paper_trading
-          key: pt-v2-dummy
-          restore-keys: pt-v2-
+          key: pt-v3-dummy
+          restore-keys: pt-v3-
 
       - name: Run executor
         run: uv run executor.py
@@ -31,4 +31,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: paper_trading
-          key: pt-v2-${{ github.run_id }}
+          key: pt-v3-${{ github.run_id }}
