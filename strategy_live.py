@@ -37,7 +37,7 @@ BB_PERIOD = 7
 
 FUNDING_LOOKBACK = 24
 FUNDING_BOOST = 0.0
-BASE_POSITION_PCT = 0.05        # 5% per symbol — ~$11.5 per position on $700
+BASE_POSITION_PCT = 0.30        # 30% per symbol × 33% weight = ~10% per symbol = ~$70 each
 VOL_LOOKBACK = 36
 TARGET_VOL = 0.015
 ATR_LOOKBACK = 24
@@ -58,7 +58,7 @@ COOLDOWN_BARS = 3               # CHANGED: 2 → 3 (more conservative)
 MIN_VOTES = 4
 
 # NEW: Live safety parameters
-MAX_PORTFOLIO_EXPOSURE_PCT = 0.20  # Max 20% of equity exposed across all positions
+MAX_PORTFOLIO_EXPOSURE_PCT = 0.35  # Max 35% of equity exposed across all positions
 DAILY_LOSS_LIMIT_PCT = 0.02        # Stop trading if down 2% in a day
 
 
