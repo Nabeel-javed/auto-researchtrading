@@ -115,15 +115,15 @@ Starting Capital: **$700** | Strategy: `strategy_live.py` | Started: {start_time
 
 ## Daily Performance
 
-| Day | Date | Equity | Daily P&L | Daily % | Total Return | Realized PnL |
-|-----|------|--------|-----------|---------|-------------|-------------|
+| Day | Date | Equity | Daily P&L | Daily % | Total Return |
+|-----|------|--------|-----------|---------|-------------|
 """
 
     for r in rows:
         content += (
             f"| {r['day']} | {r['date']} | ${r['equity']:.2f} | "
             f"${r['daily_pnl']:+.2f} | {r['daily_pct']:+.2f}% | "
-            f"{r['total_ret']:+.2f}% | ${r['realized']:+.4f} |\n"
+            f"{r['total_ret']:+.2f}% |\n"
         )
 
     content += f"""
