@@ -1,0 +1,38 @@
+name: Daily Report
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Every day at midnight UTC
+  workflow_dispatch: {}   # Manual trigger
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore trading state
+        uses: actions/cache/restore@v4
+        with:
+          path: paper_trading
+          key: pt-v3-dummy
+          restore-keys: pt-v3-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Generate daily report
+        run: uv run daily_report.py
+
+      - name: Commit and push report
+        run: |
+          git config user.name "Paper Trading Bot"
+          git config user.email "bot@noreply.github.com"
+          git add PAPER_TRADING.md
+          git diff --cached --quiet || git commit -m "daily report: $(date -u +%Y-%m-%d)"
+          git push origin main
