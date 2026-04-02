@@ -1,24 +1,27 @@
 # Paper Trading Results
 
-Capital: $700.00 | Strategy: strategy_live.py | Exchange: Hyperliquid (paper)
+Starting Capital: **$700** | Strategy: `strategy_live.py` | Started: 2026-03-27
 
 ## Daily Performance
 
-| Date | Equity | Total Return | Daily P&L | Daily % | Drawdown | Trades | Positions |
-|------|--------|-------------|-----------|---------|----------|--------|-----------|
-| 2026-04-02 | $751.96 | +7.42% | $-9.56 | -1.26% | 1.77% | 8 | SHORT SOL $26 |
+| Day | Date | Equity | Daily P&L | Daily % | Total Return | Realized PnL |
+|-----|------|--------|-----------|---------|-------------|-------------|
+| 1 | 2026-03-27 | $703.41 | $+3.41 | +0.49% | +0.49% | $-0.1306 |
+| 2 | 2026-03-28 | $730.98 | $+27.57 | +3.92% | +4.43% | $+0.1725 |
+| 3 | 2026-03-29 | $735.69 | $+4.71 | +0.64% | +5.10% | $+0.1078 |
+| 4 | 2026-03-30 | $731.49 | $-4.20 | -0.57% | +4.50% | $+1.0181 |
+| 5 | 2026-03-31 | $752.94 | $+21.45 | +2.93% | +7.56% | $-0.2118 |
+| 6 | 2026-04-01 | $761.53 | $+8.59 | +1.14% | +8.79% | $+0.3828 |
+| 7 | 2026-04-02 | $751.96 | $-9.56 | -1.26% | +7.42% | $+0.6904 |
 
-## Summary
+## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Starting Capital | $700.00 |
-| Current Equity | $751.96 |
-| Total Return | +7.42% |
-| Total PnL (realized) | $1.5235 |
+| Equity | **$751.96** |
+| Total Return | **+7.42%** |
+| Realized PnL | $1.5235 |
 | Peak Equity | $765.54 |
 | Max Drawdown | 1.77% |
-| Total Trades | 109 |
-| Win Rate | 33.0% |
-| Running Since | 2026-03-27 |
-| Last Updated | 2026-04-02 11:22 UTC |
+| Positions | SHORT SOL $26 |
+| Last Updated | 2026-04-02 11:32 UTC |
