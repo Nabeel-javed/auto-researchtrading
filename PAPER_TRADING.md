@@ -133,16 +133,17 @@ Starting Capital: **$700** | Strategy: `strategy_live.py` | Started: 2026-03-27
 | 125 | 2026-07-29 | $996.23 | $-8.84 | -0.88% | +42.32% |
 | 126 | 2026-07-30 | $1009.98 | $+13.76 | +1.38% | +44.28% |
 | 127 | 2026-07-31 | $1016.02 | $+6.04 | +0.60% | +45.15% |
-| 128 | 2026-08-01 | $1028.54 | $+12.52 | +1.23% | +46.93% |
+| 128 | 2026-08-01 | $1037.66 | $+21.64 | +2.13% | +48.24% |
+| 129 | 2026-08-02 | $1047.97 | $+10.31 | +0.99% | +49.71% |
 
 ## Current Status
 
 | Metric | Value |
 |--------|-------|
-| Equity | **$1028.54** |
-| Total Return | **+46.93%** |
-| Realized PnL | $14.7745 |
-| Peak Equity | $1034.22 |
-| Max Drawdown | 0.55% |
-| Positions | LONG BTC $53, SHORT ETH $63 |
-| Last Updated | 2026-08-01 02:55 UTC |
+| Equity | **$1047.97** |
+| Total Return | **+49.71%** |
+| Realized PnL | $13.1636 |
+| Peak Equity | $1047.97 |
+| Max Drawdown | 0.00% |
+| Positions | LONG BTC $54, LONG SOL $52 |
+| Last Updated | 2026-08-02 02:54 UTC |
