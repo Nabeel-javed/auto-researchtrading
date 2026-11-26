@@ -13,6 +13,7 @@ Starting Capital: **$700** | Strategy: `strategy_live.py` | Started: 2026-11-19
 | 5 | 2026-11-23 | $710.21 | $+1.52 | +0.21% | +1.46% |
 | 6 | 2026-11-24 | $699.42 | $-10.79 | -1.52% | -0.08% |
 | 7 | 2026-11-25 | $700.87 | $+1.45 | +0.21% | +0.12% |
+| 8 | 2026-11-26 | $700.87 | $+0.00 | +0.00% | +0.12% |
 
 ## Current Status
 
@@ -24,4 +25,4 @@ Starting Capital: **$700** | Strategy: `strategy_live.py` | Started: 2026-11-19
 | Peak Equity | $710.21 |
 | Max Drawdown | 1.32% |
 | Positions | Flat |
-| Last Updated | 2026-11-25 07:29 UTC |
+| Last Updated | 2026-11-26 07:18 UTC |
